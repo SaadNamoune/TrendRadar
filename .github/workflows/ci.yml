@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - run: pytest tests/ -q
+
+  crawl:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m trendradar
+      - name: Commit digest
+        run: |
+          git config user.name "TrendRadar Bot"
+          git config user.email "bot@trendradar"
+          git add markdowns/ reports/ || true
+          git diff --cached --quiet || git commit -m "chore: daily trending digest $(date +%Y-%m-%d)"
+          git push
